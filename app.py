@@ -424,18 +424,22 @@ async def analyze_repository(url: str = Query(..., description="Public GitHub re
         # Generate deterministic rule-based insights
         insights = generate_insights(repo_data, languages_data, readme_info)
 
+        owner_info = repo_data.get("owner") or {}
+        license_info = repo_data.get("license") or {}
+        license_str = license_info.get("spdx_id") or license_info.get("name") or "None"
+
         # Construct normalized response
         normalized = {
             "repository": {
                 "name": repo_data.get("name"),
                 "full_name": repo_data.get("full_name"),
-                "owner": repo_data.get("owner", {}).get("login"),
-                "owner_avatar": repo_data.get("owner", {}).get("avatar_url"),
+                "owner": owner_info.get("login"),
+                "owner_avatar": owner_info.get("avatar_url"),
                 "description": repo_data.get("description") or "No description provided.",
                 "html_url": repo_data.get("html_url"),
                 "topics": repo_data.get("topics", []),
                 "language": repo_data.get("language") or "Not specified",
-                "license": repo_data.get("license", {}).get("spdx_id") or repo_data.get("license", {}).get("name") or "None",
+                "license": license_str,
                 "created_at": repo_data.get("created_at"),
                 "updated_at": repo_data.get("updated_at"),
                 "pushed_at": repo_data.get("pushed_at"),
