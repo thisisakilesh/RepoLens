@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RepoLens — Developer-Focused GitHub Repository Analyzer</title>
+  <meta name="description" content="Understand any GitHub repository in seconds. Turn public repository data into clean developer metrics and insights.">
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js for Language Breakdown -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header & Hero Section -->
+    <header class="hero-header">
+      <div class="brand">
+        <div class="logo-mark">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <path d="M11 8v6"></path>
+            <path d="M8 11h6"></path>
+          </svg>
+        </div>
+        <span class="brand-title">RepoLens</span>
+        <span class="brand-badge">v1.0 MVP</span>
+      </div>
+      <h1 class="hero-tagline">Understand any GitHub repository in seconds.</h1>
+      <p class="hero-subtitle">
+        RepoLens analyzes public GitHub repositories and turns repository data into useful developer insights.
+      </p>
+
+      <!-- Main Input Search Form -->
+      <form id="analyze-form" class="search-form" autocomplete="off">
+        <div class="input-wrapper">
+          <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+          </svg>
+          <input 
+            type="text" 
+            id="repo-url" 
+            class="repo-input" 
+            placeholder="Paste GitHub repository URL (e.g. https://github.com/facebook/react)" 
+            required
+            spellcheck="false"
+          >
+          <button type="submit" id="analyze-btn" class="btn-primary">
+            <span class="btn-text">Analyze Repository</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Quick sample repositories for fast testing -->
+      <div class="quick-samples">
+        <span class="sample-label">Try example:</span>
+        <button type="button" class="sample-btn" data-url="https://github.com/facebook/react">facebook/react</button>
+        <button type="button" class="sample-btn" data-url="https://github.com/microsoft/vscode">microsoft/vscode</button>
+        <button type="button" class="sample-btn" data-url="https://github.com/fastapi/fastapi">fastapi/fastapi</button>
+      </div>
+    </header>
+
+    <!-- Status States -->
+    <!-- Loading State -->
+    <div id="loading-state" class="state-card loading-state hidden" aria-live="polite">
+      <div class="spinner"></div>
+      <div class="loading-content">
+        <h3 class="state-title">Analyzing repository...</h3>
+        <p class="state-desc">Fetching metadata, commit metrics, code languages, and root structure from GitHub.</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-state" class="state-card error-state hidden" role="alert">
+      <div class="error-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="error-content">
+        <h3 id="error-title" class="state-title">Unable to analyze repository</h3>
+        <p id="error-message" class="state-desc">Check the URL and make sure the repository is public.</p>
+      </div>
+      <button type="button" id="dismiss-error-btn" class="btn-secondary error-dismiss">Dismiss</button>
+    </div>
+
+    <!-- Analysis Dashboard (rendered dynamically or unhidden) -->
+    <main id="dashboard" class="dashboard hidden">
+      <!-- 1. Repository Header -->
+      <section class="card repo-header-card">
+        <div class="repo-meta-top">
+          <div class="repo-identity">
+            <img id="owner-avatar" class="owner-avatar" src="" alt="Owner avatar" width="48" height="48">
+            <div class="repo-names">
+              <div class="repo-owner" id="repo-owner">owner</div>
+              <h2 class="repo-title" id="repo-name">repository</h2>
+            </div>
+          </div>
+          <div class="repo-actions">
+            <a id="github-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-github">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              <span>View on GitHub</span>
+            </a>
+          </div>
+        </div>
+
+        <p class="repo-description" id="repo-description">Repository description will appear here.</p>
+
+        <!-- Topics & tags -->
+        <div class="repo-topics" id="repo-topics">
+          <!-- dynamically populated -->
+        </div>
+
+        <!-- Meta specs footer -->
+        <div class="repo-specs-grid">
+          <div class="spec-item">
+            <span class="spec-label">Primary Language</span>
+            <span class="spec-value mono" id="spec-language">—</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">License</span>
+            <span class="spec-value mono" id="spec-license">—</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Created</span>
+            <span class="spec-value mono" id="spec-created">—</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Last Updated</span>
+            <span class="spec-value mono" id="spec-updated">—</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Default Branch</span>
+            <span class="spec-value mono" id="spec-branch">—</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Key Statistics Cards -->
+      <section class="section-container">
+        <h3 class="section-title">Key Statistics</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-icon">⭐</span>
+              <span class="stat-label">Stars</span>
+            </div>
+            <div class="stat-value mono" id="stat-stars">0</div>
+            <div class="stat-subtext">Stargazers</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-icon">🍴</span>
+              <span class="stat-label">Forks</span>
+            </div>
+            <div class="stat-value mono" id="stat-forks">0</div>
+            <div class="stat-subtext">Forks & derivations</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-icon">👁</span>
+              <span class="stat-label">Watchers</span>
+            </div>
+            <div class="stat-value mono" id="stat-watchers">0</div>
+            <div class="stat-subtext">Active subscribers</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-icon">🐛</span>
+              <span class="stat-label">Open Issues</span>
+            </div>
+            <div class="stat-value mono" id="stat-issues">0</div>
+            <div class="stat-subtext">Issues & PRs</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-icon">💾</span>
+              <span class="stat-label">Repo Size</span>
+            </div>
+            <div class="stat-value mono" id="stat-size">0 KB</div>
+            <div class="stat-subtext">Disk footprint</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-icon">👥</span>
+              <span class="stat-label">Contributors</span>
+            </div>
+            <div class="stat-value mono" id="stat-contributors">—</div>
+            <div class="stat-subtext">Project contributors</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Two-Column Row: Language Analysis & Developer Insights -->
+      <div class="analytics-row">
+        <!-- Language Analysis -->
+        <section class="card language-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Language Breakdown</h3>
+              <p class="card-subtitle">Calculated byte distribution across repository</p>
+            </div>
+            <span class="total-code-size mono" id="languages-total-bytes">—</span>
+          </div>
+
+          <div class="language-body">
+            <div class="chart-container">
+              <canvas id="language-chart"></canvas>
+            </div>
+            <div class="language-list" id="language-list">
+              <!-- Dynamically rendered language list -->
+            </div>
+          </div>
+        </section>
+
+        <!-- Developer Insights -->
+        <section class="card insights-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Developer Insights</h3>
+              <p class="card-subtitle">Deterministic rule-based analysis of repository metrics</p>
+            </div>
+            <span class="insight-badge">Rule Engine</span>
+          </div>
+
+          <div class="insights-list" id="insights-list">
+            <!-- Dynamically populated insights -->
+          </div>
+        </section>
+      </div>
+
+      <!-- 4. Two-Column Row: Project Structure & README Analysis -->
+      <div class="content-row">
+        <!-- Root Project Structure -->
+        <section class="card structure-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Project Structure</h3>
+              <p class="card-subtitle">Root-level directory & file explorer</p>
+            </div>
+            <span class="mono items-count" id="structure-count">0 items</span>
+          </div>
+
+          <div class="explorer-container">
+            <div class="explorer-tree" id="explorer-tree">
+              <!-- Rendered file tree -->
+            </div>
+          </div>
+        </section>
+
+        <!-- README Analysis -->
+        <section class="card readme-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">README Analysis</h3>
+              <p class="card-subtitle">Documentation inspection & preview</p>
+            </div>
+            <div id="readme-status-badge" class="badge-readme">
+              <!-- e.g. README ✓ Available -->
+            </div>
+          </div>
+
+          <div class="readme-body">
+            <div id="readme-preview-box" class="readme-preview">
+              <!-- Extracted preview text -->
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <span>RepoLens — Fast, developer-focused GitHub repository analysis.</span>
+        <span class="mono">Powered by GitHub REST API & FastAPI</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
